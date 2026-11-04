@@ -199,18 +199,67 @@ thrown`. Хэрэв A6-г зөвхөн `register(null, COURSE_ID)` гэж бич
    үүнийг практикт батлав: мутант бүрийг барихын тулд тест бүр **өөр өөр**
    зүйл шалгах ёстой байсан бөгөөд 10 тест 3/3 мутантыг барьсан.
 
-## 7. Репозиторийн бүтэц
+## 7. Нэмэлт даалгавар — AI өнцөг (Сонголт 2)
+
+`CourseRegistrationService.java`-г AI туслахад өгөөд «Mockito-гоор бүрэн тестийн
+класс бич» гэж хүссэн. AI 11 тесттэй класс буцаасан (`ai-review/AiGenerated…Test.java`).
+Түүнийг **зөвхөн ажиллуулаад зогсохгүй, Хэсэг B-гийн 3 мутантаар эвдэж үзсэн** —
+үр дүн нь:
+
+| Мутант | Миний тест (10) | AI-ийн тест (11) |
+|---|---|---|
+| M1 `!student.active()` коммент | ✅ барьсан (2 Failure) | ✅ барьсан (2 Failure) |
+| M2 `saveRegistration` коммент | ✅ барьсан (2 Failure) | ✅ барьсан (3 Failure) |
+| M3 `\|\| courseId == null` устгасан | ✅ барьсан (1 Failure) | ❌ **барьж чадсангүй — BUILD SUCCESS** |
+| M4 (нэмэлт) алдааны замд ч и-мэйл явуулав | ✅ барьсан (2 Failure) | ❌ **барьж чадсангүй — BUILD SUCCESS** |
+
+Гаралтууд: `results/mvn-test-mutant-N.txt` (миний) ба `results/ai-vs-mutant-N.txt` (AI).
+
+**(1) Хэв маяг ба юу мартсан.** AI-ийн тестүүд минийхтэй ижил тооны тесттэй
+(11 vs 10) боловч нэр нь `testSuccessfulRegistration`, `testNullStudentId` гэх мэт
+ерөнхий байсан — зааврын `юуг_ямарНөхцөлд_юуХүлээгдэнэ` хэв маягийг дагаагүй.
+AI нэмж `InOrder` (дуудалтын дараалал) ба `times(1)` шалгалтыг санаачилсан нь
+миний тестэд байгаагүй — гэхдээ дараалал нь хэрэгжүүлэлтийн дэлгэрэнгүйг тестэд
+шингээдэг тул (дээрх дүгнэлт #4) энэ нь давуу тал биш. AI мөн `@InjectMocks`
+ашигласан — миний `@BeforeEach` дэх гараар `new` хийсэнтэй төстэй.
+
+**(2) «Сул» тест байна уу — тийм.** AI-ийн тестүүд код **зөв үед** ногоон болдог ч
+**эвдэрсэн үед ч** ногоон хэвээр үлддэг. M3-д AI-ийн `testNullStudentId` нь зөвхөн
+`service.register(null, "F.CSA313")` гэж дуудсан — `courseId == null`-ийг шалгаагүй
+тул мутантыг мэдэрсэнгүй. M4-д AI-ийн `testStudentNotFound` нь зөвхөн буцах утгыг
+(`ERROR_NO_STUDENT`) `assertEquals`-ээр шалгасан бөгөөд «алдааны замд и-мэйл
+явах ёсгүй» гэдгийг `verify(…, never())`-ээр **огт шалгаагүй** — тиймээс код
+алдаатай хэрэглэгчид и-мэйл илгээж эхэлснийг ч илрүүлээгүй. Энэ бол сонгодог
+**сул assertion**: үр дүнг л харж, гаж нөлөөг (side effect) алдсан. Миний A2/A3
+тестүүд `never()` ба `verifyNoInteractions`-оор яг үүнийг хамарсан тул хоёр
+мутантыг хоёуланг нь барьсан.
+
+**(3) Дүгнэлт.** AI-ийн тест 4 мутантын 2-ыг л барьсан; миний тест 4/4-ийг барьсан.
+Гол ялгаа нь AI **тоо хэмжээг** (илүү тест, илүү хэрэгсэл) нэмсэн бол би **сөрөг
+замыг** (юу болох ёсгүй вэ) хамарсан. AI-ийн гаргасан тестийг шүүмжгүйгээр
+аваад `mvn test` ногоон болсныг л харвал «бүх зүйл хамгаалагдсан» гэсэн хуурамч
+итгэл төрөх байсан — мутацаар эвдэж үзсэнээр л жинхэнэ цоорхой илэрсэн. Заавар
+«AI-ийн бичсэн тестийг өөрөө ажиллуулж, Хэсэг B-ээр эвдэж үзээгүй … ажлыг хуулбар
+гэж үзнэ» гэсэн нь яг энэ шалтгаантай нийцэж байна.
+
+## 8. Репозиторийн бүтэц
 
 ```
 lab08-mockito/
 ├── pom.xml
 ├── .gitignore                    # target/, .idea/, .DS_Store
 ├── README.md                     # энэ файл
+├── ai-review/
+│   └── AiGeneratedCourseRegistrationServiceTest.java   # AI-ийн тест (харьцуулалт)
 ├── results/
 │   ├── mvn-test.txt              # эцсийн ногоон: Tests run: 10, BUILD SUCCESS
 │   ├── mvn-test-mutant-1.txt     # Failures: 2, BUILD FAILURE
 │   ├── mvn-test-mutant-2.txt     # Failures: 2, BUILD FAILURE
-│   └── mvn-test-mutant-3.txt     # Failures: 1, BUILD FAILURE
+│   ├── mvn-test-mutant-3.txt     # Failures: 1, BUILD FAILURE
+│   ├── ai-vs-mutant-1.txt        # AI тест: Failures: 2, BUILD FAILURE
+│   ├── ai-vs-mutant-2.txt        # AI тест: Failures: 3, BUILD FAILURE
+│   ├── ai-vs-mutant-3.txt        # AI тест: Failures: 0, BUILD SUCCESS ← цоорхой
+│   └── ai-vs-mutant-4.txt        # AI тест: Failures: 0, BUILD SUCCESS ← цоорхой
 └── src/
     ├── main/java/mn/edu/must/sqat/
     │   ├── Student.java
@@ -228,7 +277,7 @@ mvn test                       # 10 тест ногоон
 mvn test 2>&1 | tee results/mvn-test.txt
 ```
 
-## 8. Ажлын явц (commit-ийн түүх)
+## 9. Ажлын явц (commit-ийн түүх)
 
 Ажлын үе шат бүрийг тусдаа commit-оор хийсэн — бүгдийг нэг дор биш:
 
@@ -236,5 +285,6 @@ mvn test 2>&1 | tee results/mvn-test.txt
 2. `Section A: 8 Mockito tests (stub, verify/never, doThrow, ArgumentCaptor, parameterized)`
 3. `Section B: mutation testing results (3 mutants, source restored)`
 4. README — дүгнэлт, мутацийн хүснэгт
+5. `Optional: AI-generated test compared against the same mutants` — AI өнцөг
 
 `git log --oneline` командаар шалгаж болно.
